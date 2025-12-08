@@ -1,24 +1,52 @@
 # dashboard_enhanced.py
 # Requirements:
-
+import gc
 import os
 import time
-print(f"=== DASHBOARD LOADED AT {time.strftime('%H:%M:%S')} ===")
 import pandas as pd
+from functools import lru_cache
 import numpy as np
 import re
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import dash
-from dash import dcc, html, Input, Output, State
+from dash import dcc, html, Input, Output, State,dash_table
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
+if os.environ.get('RENDER'):
+    print("Running on Render - limiting data size")
+    LIMIT_ROWS = 20000  # Process only first 20k rows
+else:
+    LIMIT_ROWS = None 
 # -----------------------------
 # CONFIG
 # -----------------------------
 KEYWORD_DATA_FILE = "Max Learning_5Dec202517_54_48_27Nov2025_03Dec2025.csv"
 DOMAIN_DATA_FILE = "Domain Analysis_27Nov2025_03Dec2025.csv"
 PORT = 8050
+
+@lru_cache(maxsize=1)
+def load_keyword_data():
+    """Cache loaded data to prevent reloading"""
+    try:
+        df = pd.read_csv(KEYWORD_DATA_FILE, low_memory=False)
+        print(f"Loaded {len(df)} keyword rows")
+        return df
+    except Exception as e:
+        print(f"Error loading keyword data: {e}")
+        return pd.DataFrame()
+
+@lru_cache(maxsize=1)
+def load_domain_data():
+    """Cache loaded domain data"""
+    try:
+        df = pd.read_csv(DOMAIN_DATA_FILE, low_memory=False)
+        print(f"Loaded {len(df)} domain rows")
+        return df
+    except Exception as e:
+        print(f"Error loading domain data: {e}")
+        return pd.DataFrame()
+
 COLORS = {
     'primary': '#00D9FF',
     'secondary': '#FF6B9D',
@@ -83,18 +111,8 @@ def cvr_color(val, metric='CVR'):
 # -----------------------------
 # LOAD DATA
 # -----------------------------
-try:
-    df_keyword = pd.read_csv(KEYWORD_DATA_FILE)
-    print(f"Loaded {len(df_keyword)} keyword rows")
-except Exception as e:
-    df_keyword = pd.DataFrame()
-    print("Warning: couldn't load keyword data file:", e)
-try:
-    df_domain = pd.read_csv(DOMAIN_DATA_FILE)
-    print(f"Loaded {len(df_domain)} domain rows")
-except Exception as e:
-    df_domain = pd.DataFrame()
-    print("Warning: couldn't load domain data file:", e)
+df_keyword = load_keyword_data()
+df_domain = load_domain_data()
 df = df_keyword
 # Column mapping
 COL_CAMPAIGN_OBJ = find_col(df, ['[Learning] Campaign Objective', 'Campaign Objective'])
@@ -143,6 +161,9 @@ if df.empty or COL_KEYWORD is None:
 # PREPROCESS
 # -----------------------------
 work = df.copy()
+if LIMIT_ROWS:
+    work = work.head(LIMIT_ROWS)
+    print(f"Limited to {len(work)} rows for production")
 rename_map = {}
 if COL_CAMPAIGN_OBJ: rename_map[COL_CAMPAIGN_OBJ] = 'Campaign_Objective'
 if COL_ADVERTISER: rename_map[COL_ADVERTISER] = 'Advertiser'
@@ -171,12 +192,6 @@ if COL_WEIGHTED_CONV: rename_map[COL_WEIGHTED_CONV] = 'Weighted_Conversion'
 work = work.rename(columns=rename_map)
 
 # DEBUG - Check what's in the data after loading
-print("\n=== AFTER PREPROCESSING ===")
-print("Specificity_Score unique values:", work['Specificity_Score'].unique())
-print("Specificity_Score value counts:")
-print(work['Specificity_Score'].value_counts())
-print("Sample of Specificity_Score column:")
-print(work[['Keyword', 'Specificity_Score', 'Clicks']].head(20))
     
 for col in ['Impressions', 'Clicks', 'CTR', 'CVR', 'CPA', 'ROAS', 'Max_System_Cost', 'Weighted_Conversion', 'Word_Count', 'Character_Count']:
     if col in work.columns:
@@ -195,7 +210,6 @@ if 'Urgency_Level' in work.columns:
 for c in ['Campaign_Objective', 'Advertiser', 'Campaign_Type', 'Campaign', 'Keyword', 'Query_Type', 'Emotional_Intent', 'Phrase_Components', 'Keyword_Category', 'Impressions', 'Clicks', 'CTR', 'CVR', 'CPA', 'ROAS', 'Max_System_Cost', 'Weighted_Conversion', 'Is_Question', 'Is_Number_Present', 'Position_of_Number', 'Word_Count', 'Character_Count']:
     if c not in work.columns:
         work[c] = np.nan if c not in ['Impressions', 'Clicks'] else 0
-print(f"Processed {len(work)} keyword rows")
 # -----------------------------
 # PREPROCESS DOMAIN DATA
 # -----------------------------
@@ -236,7 +250,6 @@ for col in ['Impressions', 'Clicks', 'CTR', 'CVR', 'CPA', 'ROAS', 'Max_System_Co
 for c in ['Campaign_Objective', 'Advertiser', 'Campaign_Type', 'Campaign', 'Domain', 'Domain_Category', 'Impressions', 'Clicks', 'CTR', 'CVR', 'CPA', 'ROAS', 'Max_System_Cost', 'Weighted_Conversion']:
     if c not in work_domain.columns:
         work_domain[c] = np.nan if c not in ['Impressions', 'Clicks'] else 0
-print(f"Processed {len(work_domain)} domain rows")
 # -----------------------------
 # AGGREGATION FUNCTIONS
 # -----------------------------
@@ -632,74 +645,27 @@ def load_campaigns(ctype):
     Input('advertiser-dropdown','value'),
     Input('campaign-type-dropdown','value'),
     Input('campaign-dropdown','value'),
-    Input('analysis-tabs', 'active_tab')
+    Input('analysis-tabs', 'active_tab'),
+    prevent_initial_call=True
 )
 def update_dashboard(obj, adv, ctype, camp, active_tab):
     if active_tab != "keyword-tab":
         raise PreventUpdate
-    print("\n=== UPDATE DASHBOARD CALLED ===")
-    print(f"Filters: obj={obj}, adv={adv}, ctype={ctype}, camp={camp}")
     
     d = work.copy()
-    print("Rows before filtering:", len(d))
     if obj:
-        d = d[d['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
-        print("Rows after obj filter:", len(d))
-        print("Remaining Campaign_Objective:", d['Campaign_Objective'].unique())
+        d = d[d['Campaign_Objective'] == obj]
     if adv:
-        d = d[d['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
-        print("Rows after adv filter:", len(d))
-        print("Remaining Advertiser:", d['Advertiser'].unique())
+        d = d[d['Advertiser'] == adv]
     if ctype:
-        d = d[d['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
-        print("Rows after ctype filter:", len(d))
-        print("Remaining Campaign_Type:", d['Campaign_Type'].unique())
+        d = d[d['Campaign_Type'] == ctype]
     if camp:
-        d = d[d['Campaign'].astype(str).str.strip().str.lower() == str(camp).strip().lower()]
-        print("Rows after camp filter:", len(d))
-        print("Remaining Campaign:", d['Campaign'].unique())
+        d = d[d['Campaign'] == obj]            
     
-    print("FINAL DF SHAPE:", d.shape)
-    if d.shape[0]:
-        print("First filtered row:", d.iloc[0])
-    else:
-        print("No rows left after all filters!")
-    
-    print(f"Final filtered data size: {len(d)} rows")
-    print("\n=== EMOTION DEBUG ===")
-    print(f"Emotional_Intent unique (first 20): {d['Emotional_Intent'].unique()[:20]}")
-    print(f"Emotional_Intent sample rows:")
-    print(d[['Keyword', 'Emotional_Intent', 'Clicks']].head(15))
-    print("\n=== RAW EMOTION DATA CHECK ===")
-    print("Sample of Emotional_Intent column (first 20 non-null):")
-    print(d[d['Emotional_Intent'].notna()]['Emotional_Intent'].head(20).tolist())
-    print(f"Total non-null Emotional_Intent: {d['Emotional_Intent'].notna().sum()}")
-    print(f"Total null Emotional_Intent: {d['Emotional_Intent'].isna().sum()}")
-    print(f"\n=== NUMBER PRESENT DEBUG ===")
-    print(f"Is_Number_Present unique: {d['Is_Number_Present'].unique()}")
-    print(f"Is_Number_Present counts:")
-    print(d['Is_Number_Present'].value_counts())
-    print(f"Sample rows with numbers:")
-    print(d[['Keyword', 'Is_Number_Present', 'Clicks']].head(20))
-    
-    print(f"\n=== NUMBER POSITION DEBUG ===")
-    print(f"Position_of_Number unique: {d['Position_of_Number'].unique()}")
-    print(f"Position_of_Number counts (non-null only):")
-    print(d[d['Position_of_Number'].notna()]['Position_of_Number'].value_counts())
-    print(f"Sample rows with position:")
-    print(d[d['Position_of_Number'].notna()][['Keyword', 'Position_of_Number', 'Clicks']].head(20))
-    print("===================\n")
     if d.shape[0] == 0:
         empty_fig = go.Figure()
         empty_fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',font=dict(color='white'), xaxis=dict(color='white'),yaxis=dict(color='white'))
         return (html.Div("No data"), empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No data"))
-    print(f"\n=== QUERY_TYP ===")
-    print(f"Query_Type column exists: {'Query_Type' in d.columns}")
-    if 'Query_Type' in d.columns:
-        print(f"Query_Type unique values: {d['Query_Type'].unique()}")
-        print(f"Query_Type non-null count: {d['Query_Type'].notna().sum()}")
-        print(f"Sample Query_Type values:")
-        print(d[['Keyword', 'Query_Type', 'Clicks']].head(10))
     total_clicks = int(d['Clicks'].sum())
     total_impressions = int(d['Impressions'].sum())
     avg_ctr = weighted_ctr(d)
@@ -762,7 +728,7 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
             'CPA': weighted_cpa(g),
             'ROAS': weighted_roas(g)
         })).reset_index()
-        word_agg = word_agg.sort_values('Clicks', ascending=False).head(50)
+        word_agg = word_agg.sort_values('Clicks', ascending=False).head(30)
     else:
         word_agg = pd.DataFrame(columns=['word','Clicks','CTR','CVR','CPA','ROAS'])
     # 1. TREEMAP CTR/CVR
@@ -896,7 +862,6 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         yaxis_title="Normalized Score (0-100)",font=dict(color='white'), xaxis=dict(color='white'),yaxis=dict(color='white')
             )
-                    print(f"fig_cat created with {len(fig_cat.data)} traces")
         else:
             fig_cat = go.Figure()
             print("cat_grp is empty, creating empty fig_cat")
@@ -996,11 +961,6 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
     emo_ctr_cvr = go.Figure()
     if emo_rows:
         emo_df = pd.DataFrame(emo_rows)
-        print("\n=== EMOTION PROCESSING ===")
-        print(f"Total emo_rows created: {len(emo_rows)}")
-        print(f"Unique emotions in emo_df: {emo_df['emotion'].unique()}")
-        print(f"Emotion counts:")
-        print(emo_df['emotion'].value_counts())
     
         emo_top_keywords = emo_df.groupby('emotion').apply(
         lambda g: '<br>'.join([f"• {kw} ({int(c)} clicks)" 
@@ -1008,13 +968,12 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
                                               g.nlargest(3, 'Clicks')['Clicks'])])
         ).to_dict()
     
-        emo_agg = emo_df.groupby('emotion').apply(lambda g: pd.Series({
-        'Clicks': g['Clicks'].sum(),
-        'CTR': weighted_ctr(g),
-        'CVR': weighted_cvr(g),
-        'CPA': weighted_cpa(g),
-        'ROAS': weighted_roas(g)
-    })).reset_index()
+        emo_agg = emo_df.groupby('emotion').agg({
+            'Clicks': 'sum',
+            'Impressions': 'sum',
+            'CTR': 'mean',  # Approximate, adjust if needed
+            'CVR': 'mean'
+            }).reset_index()
     
         max_clicks_emo = emo_agg['Clicks'].max()
         palette = [COLORS['primary'], COLORS['secondary'], COLORS['success'], 
@@ -1590,18 +1549,37 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
 )
     # Table preview
     preview_cols = ['Keyword', 'Clicks', 'CTR', 'CVR', 'CPA', 'ROAS', 'Campaign_Type', 'Query_Type']
-    preview_df = d[preview_cols].sort_values('Clicks', ascending=False).head(30)
-    table_children = dbc.Table.from_dataframe(
-        preview_df.reset_index(drop=True),
-        striped=True, bordered=False, hover=True, responsive=True
-    )
-    
-    print(f"\n=== FINAL CHECK ===")
-    print(f"fig_cat type: {type(fig_cat)}")
-    print(f"fig_cat has data: {len(fig_cat.data) if hasattr(fig_cat, 'data') else 'NO DATA ATTR'}")
+    preview_df = d[preview_cols].sort_values('Clicks', ascending=False).head(100)  # Increased to 100
+    table_children = dash_table.DataTable(
+    data=preview_df.to_dict('records'),
+    columns=[{"name": i, "id": i} for i in preview_df.columns],
+    page_size=30,
+    page_current=0,
+    style_table={'overflowX': 'auto'},
+    style_cell={
+        'textAlign': 'left',
+        'backgroundColor': '#121419',
+        'color': '#E5E7EB',
+        'border': '1px solid #2d3748',
+        'padding': '8px'
+    },
+    style_header={
+        'backgroundColor': '#1a1a1a',
+        'fontWeight': 'bold',
+        'color': '#00D9FF',
+        'border': '1px solid #2d3748'
+    },
+    style_data_conditional=[
+        {
+            'if': {'row_index': 'odd'},
+            'backgroundColor': '#1a1f2e'
+        }
+    ]
+)
     if hasattr(fig_cat, 'data') and len(fig_cat.data) > 0:
         print(f"First trace type: {type(fig_cat.data[0])}")
         print(f"First trace x data: {fig_cat.data[0].x if hasattr(fig_cat.data[0], 'x') else 'NO X'}")
+    gc.collect()
     return (stat_row, treemap_ctr_cvr, treemap_cpa_roas,
         fig_cat, keyword_category_fig, emo_ctr_cvr, emo_roas_cpa, char_fig, specificity_fig,urgency_fig, word_count_fig,
         num_fig, num_pos_fig, question_fig, table_children)
@@ -1942,11 +1920,33 @@ def update_domain_dashboard(obj, adv, ctype, camp, active_tab):
 
     # Table preview
     preview_cols = ['Domain', 'Domain_Category', 'Clicks', 'CTR', 'CVR', 'CPA', 'ROAS']
-    preview_df = d[preview_cols].sort_values('Clicks', ascending=False).head(30)
-    table_children = dbc.Table.from_dataframe(
-        preview_df.reset_index(drop=True),
-        striped=True, bordered=False, hover=True, responsive=True
-    )
+    preview_df = d[preview_cols].sort_values('Clicks', ascending=False).head(100)  # Increased to 100
+    table_children = dash_table.DataTable(
+    data=preview_df.to_dict('records'),
+    columns=[{"name": i, "id": i} for i in preview_df.columns],
+    page_size=30,
+    page_current=0,
+    style_table={'overflowX': 'auto'},
+    style_cell={
+        'textAlign': 'left',
+        'backgroundColor': '#121419',
+        'color': '#E5E7EB',
+        'border': '1px solid #2d3748',
+        'padding': '8px'
+    },
+    style_header={
+        'backgroundColor': '#1a1a1a',
+        'fontWeight': 'bold',
+        'color': '#00D9FF',
+        'border': '1px solid #2d3748'
+    },
+    style_data_conditional=[
+        {
+            'if': {'row_index': 'odd'},
+            'backgroundColor': '#1a1f2e'
+        }
+    ]
+)
 
     return (stat_row, treemap_ctr_cvr, treemap_cpa_roas, cat_overview, cat_ctr_cvr, cat_roas_cpa, table_children)# Domain download callback
 @app.callback(
