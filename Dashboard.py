@@ -611,7 +611,6 @@ def init_objective(_):
 @app.callback(
     Output('advertiser-dropdown','options'),
     Input('objective-dropdown','value'),
-    prevent_initial_call=True
 )
 def load_advertisers(obj):
     data = work if not obj else work[work['Campaign_Objective'] == obj]
@@ -620,8 +619,7 @@ def load_advertisers(obj):
 @app.callback(
     Output('campaign-type-dropdown','options'),
     Input('objective-dropdown','value'),
-    Input('advertiser-dropdown','value'),
-    prevent_initial_call=True
+    Input('advertiser-dropdown','value')
 )
 def load_campaign_types(obj, adv):
     data = work.copy()
@@ -634,8 +632,7 @@ def load_campaign_types(obj, adv):
     Output('campaign-dropdown','options'),
     Input('objective-dropdown','value'),      # ✅ ADD THIS
     Input('advertiser-dropdown','value'), 
-    Input('campaign-type-dropdown','value'),
-    prevent_initial_call=True
+    Input('campaign-type-dropdown','value')
 )
 def load_campaigns(obj, adv, ctype):
     data=work.copy()
@@ -665,31 +662,13 @@ def load_campaigns(obj, adv, ctype):
     Input('advertiser-dropdown','value'),
     Input('campaign-type-dropdown','value'),
     Input('campaign-dropdown','value'),
-    Input('analysis-tabs', 'active_tab'),
-    prevent_initial_call=True 
+    Input('analysis-tabs', 'active_tab')
 )
 def update_dashboard(obj, adv, ctype, camp, active_tab):
     if active_tab != "keyword-tab":
         raise PreventUpdate
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        raise PreventUpdate
-    if not any([obj, adv, ctype, camp]):
-        empty_fig = go.Figure()
-        empty_fig.add_annotation(
-            text="Please select at least one filter above to view data",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color='white')
-        )
-        empty_fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(30,30,40,0.3)',
-            height=450, xaxis=dict(visible=False), yaxis=dict(visible=False)
-        )
-        empty_stats = dbc.Alert("Select filters to view data", color="info")
-        return (empty_stats, empty_fig, empty_fig, empty_fig, empty_fig,
-                empty_fig, empty_fig, empty_fig, empty_fig, empty_fig,
-                empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No data"))
+    
+    # Filter data
     d = work.copy()
     if obj:
         d = d[d['Campaign_Objective'] == obj]
@@ -698,12 +677,31 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
     if ctype:
         d = d[d['Campaign_Type'] == ctype]
     if camp:
-        d = d[d['Campaign'] == camp]            
+        d = d[d['Campaign'] == camp]
+    
+    print(f"Filtered data shape: {d.shape}")  # Debug
+    print(f"Columns in filtered data: {d.columns.tolist()}")  # Debug
     
     if d.shape[0] == 0:
         empty_fig = go.Figure()
-        empty_fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',font=dict(color='white'), xaxis=dict(color='white'),yaxis=dict(color='white'))
-        return (html.Div("No data"), empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No data"))
+        empty_fig.add_annotation(
+            text="No data available for selected filters",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=16, color='white')
+        )
+        empty_fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(30,30,40,0.3)',
+            height=450,
+            font=dict(color='white'), 
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False)
+        )
+        empty_stats = dbc.Alert("No data available for selected filters", color="warning")
+        return (empty_stats, empty_fig, empty_fig, empty_fig, empty_fig, 
+                empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, 
+                empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No data"))
+
     total_clicks = int(d['Clicks'].sum())
     total_impressions = int(d['Impressions'].sum())
     avg_ctr = weighted_ctr(d)
@@ -738,24 +736,31 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
         ])), md=2),
     ], className='mb-3')
     # Prepare word-level aggregated df
+    
+    # 1. TREEMAP CTR/CVR
+    # Prepare word-level aggregated df
     rows = []
-    for _, r in d.iterrows():
-        pcs = split_multi(r['Phrase_Components'])
+    for idx, r in d.iterrows():
+        pcs = split_multi(r.get('Phrase_Components', ''))
         if not pcs:
-            tokens = re.findall(r"[A-Za-z0-9']+", str(r['Keyword']).lower())
+            kw = str(r.get('Keyword', ''))
+            tokens = re.findall(r"[A-Za-z0-9']+", kw.lower())
             pcs = [t for t in tokens if len(t)>1][:5]
         for w in set(pcs):
             rows.append({
                 'word': w,
-                'Clicks': r['Clicks'],
-                'Impressions': r['Impressions'],
-                'CTR': r['CTR'],
-                'CVR': r['CVR'],
-                'CPA': r['CPA'],
-                'ROAS': r['ROAS'],
-                'Max_System_Cost': r['Max_System_Cost'],
-                'Weighted_Conversion': r['Weighted_Conversion']
+                'Clicks': r.get('Clicks', 0),
+                'Impressions': r.get('Impressions', 0),
+                'CTR': r.get('CTR', 0),
+                'CVR': r.get('CVR', 0),
+                'CPA': r.get('CPA', 0),
+                'ROAS': r.get('ROAS', 0),
+                'Max_System_Cost': r.get('Max_System_Cost', 0),
+                'Weighted_Conversion': r.get('Weighted_Conversion', 0)
             })
+    
+    print(f"Word rows generated: {len(rows)}")  # Debug
+    
     if rows:
         word_df = pd.DataFrame(rows)
         word_agg = word_df.groupby('word').apply(lambda g: pd.Series({
@@ -767,9 +772,10 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
             'ROAS': weighted_roas(g)
         })).reset_index()
         word_agg = word_agg.sort_values('Clicks', ascending=False).head(30)
+        print(f"Word aggregation complete: {len(word_agg)} words")  # Debug
     else:
         word_agg = pd.DataFrame(columns=['word','Clicks','CTR','CVR','CPA','ROAS'])
-    # 1. TREEMAP CTR/CVR
+        print("No word rows generated - creating empty dataframe")  # Debug
     if not word_agg.empty:
         text_labels = word_agg.apply(
             lambda r: f"<b>{r['word']}</b><br>CTR: {r['CTR']:.1f}% | CVR: {r['CVR']:.1f}%", axis=1
@@ -972,10 +978,11 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
     # 6. EMOTION BUBBLE CTR/CVR
     # 6. EMOTION BUBBLE CTR/CVR
     # 6. EMOTION BUBBLE CTR/CVR with top keywords
+    # 6. EMOTION BUBBLE CTR/CVR with top keywords
     emo_rows = []
-    for _, row in d.iterrows():
-        emo_str = str(row['Emotional_Intent'])
-        if pd.isna(row['Emotional_Intent']) or emo_str.lower() in ['', 'nan', 'none']:
+    for idx, row in d.iterrows():
+        emo_str = str(row.get('Emotional_Intent', ''))
+        if pd.isna(row.get('Emotional_Intent')) or emo_str.lower() in ['', 'nan', 'none']:
           emos = ['neutral']
         else:
           emos = [e.strip().lower() for e in re.split(r'[;,]\s*', emo_str) if e.strip()]
@@ -985,17 +992,19 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
         for e in emos:
             emo_rows.append({
             'emotion': e,
-            'Keyword': row['Keyword'],
-            'Clicks': row['Clicks'],
-            'Impressions': row['Impressions'],
-            'CTR': row['CTR'],
-            'CVR': row['CVR'],
-            'CPA': row['CPA'],
-            'ROAS': row['ROAS'],
-            'Max_System_Cost': row['Max_System_Cost'],
-            'Weighted_Conversion': row['Weighted_Conversion']
+            'Keyword': row.get('Keyword', ''),
+            'Clicks': row.get('Clicks', 0),
+            'Impressions': row.get('Impressions', 0),
+            'CTR': row.get('CTR', 0),
+            'CVR': row.get('CVR', 0),
+            'CPA': row.get('CPA', 0),
+            'ROAS': row.get('ROAS', 0),
+            'Max_System_Cost': row.get('Max_System_Cost', 0),
+            'Weighted_Conversion': row.get('Weighted_Conversion', 0)
         })
 
+    print(f"Emotion rows generated: {len(emo_rows)}")  # Debug
+    
     emo_ctr_cvr = go.Figure()
     if emo_rows:
         emo_df = pd.DataFrame(emo_rows)
@@ -1009,11 +1018,17 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
         emo_agg = emo_df.groupby('emotion').agg({
             'Clicks': 'sum',
             'Impressions': 'sum',
-            'CTR': 'mean',  # Approximate, adjust if needed
-            'CVR': 'mean'
+            'CTR': 'mean',
+            'CVR': 'mean',
+            'CPA': 'mean',
+            'ROAS': 'mean'
             }).reset_index()
     
+        print(f"Emotion aggregation complete: {len(emo_agg)} emotions")  # Debug
+        
         max_clicks_emo = emo_agg['Clicks'].max()
+        if max_clicks_emo == 0:
+            max_clicks_emo = 1  # Prevent division by zero
         palette = [COLORS['primary'], COLORS['secondary'], COLORS['success'], 
                COLORS['info'], COLORS['warning'], COLORS['danger']]
         cmap = {emo: palette[i % len(palette)] for i, emo in enumerate(emo_agg['emotion'])}
@@ -1586,8 +1601,15 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
             height=600,paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(30,30,40,0.3)',font=dict(color='white'),xaxis=dict(color='white'),yaxis=dict(color='white')
 )
     # Table preview
+    # Table preview
     preview_cols = ['Keyword', 'Clicks', 'CTR', 'CVR', 'CPA', 'ROAS', 'Campaign_Type', 'Query_Type']
-    preview_df = d[preview_cols].sort_values('Clicks', ascending=False).head(100)  # Increased to 100
+    # Only keep columns that exist in the dataframe
+    preview_cols = [col for col in preview_cols if col in d.columns]
+    preview_df = d[preview_cols].sort_values('Clicks', ascending=False).head(100)
+    
+    print(f"Preview table shape: {preview_df.shape}")  # Debug
+    print(f"Preview columns: {preview_df.columns.tolist()}")  # Debug
+    
     table_children = dash_table.DataTable(
     data=preview_df.to_dict('records'),
     columns=[{"name": i, "id": i} for i in preview_df.columns],
