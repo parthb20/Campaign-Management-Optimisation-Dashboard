@@ -1,6 +1,6 @@
 # dashboard_enhanced.py
 # Requirements:
-# pip install dash dash-bootstrap-components pandas numpy plotly
+
 import os
 import time
 print(f"=== DASHBOARD LOADED AT {time.strftime('%H:%M:%S')} ===")
@@ -290,7 +290,6 @@ app.index_string = '''
 
 app.layout = dbc.Container([
     html.H1("✅ CPA Campaign Management Dashboard", className="text-center mt-4 mb-2", style={'color':COLORS['primary'], 'fontWeight': '700'}),
-    
     dbc.Progress(id="loading-progress", value=0, striped=True, animated=True, 
                  color="primary", className="mb-3", style={'height': '5px'}),
     dcc.Store(id='loading-store', data={'loaded': False}),
@@ -642,20 +641,29 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
     print(f"Filters: obj={obj}, adv={adv}, ctype={ctype}, camp={camp}")
     
     d = work.copy()
-    print(f"Initial data size: {len(d)} rows")
+    print("Rows before filtering:", len(d))
+    if obj:
+        d = d[d['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
+        print("Rows after obj filter:", len(d))
+        print("Remaining Campaign_Objective:", d['Campaign_Objective'].unique())
+    if adv:
+        d = d[d['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
+        print("Rows after adv filter:", len(d))
+        print("Remaining Advertiser:", d['Advertiser'].unique())
+    if ctype:
+        d = d[d['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
+        print("Rows after ctype filter:", len(d))
+        print("Remaining Campaign_Type:", d['Campaign_Type'].unique())
+    if camp:
+        d = d[d['Campaign'].astype(str).str.strip().str.lower() == str(camp).strip().lower()]
+        print("Rows after camp filter:", len(d))
+        print("Remaining Campaign:", d['Campaign'].unique())
     
-    if obj: 
-        d = d[d['Campaign_Objective']==obj]
-        print(f"After objective filter: {len(d)} rows")
-    if adv: 
-        d = d[d['Advertiser']==adv]
-        print(f"After advertiser filter: {len(d)} rows")
-    if ctype: 
-        d = d[d['Campaign_Type']==ctype]
-        print(f"After campaign type filter: {len(d)} rows")
-    if camp: 
-        d = d[d['Campaign']==camp]
-        print(f"After campaign filter: {len(d)} rows")
+    print("FINAL DF SHAPE:", d.shape)
+    if d.shape[0]:
+        print("First filtered row:", d.iloc[0])
+    else:
+        print("No rows left after all filters!")
     
     print(f"Final filtered data size: {len(d)} rows")
     print("\n=== EMOTION DEBUG ===")
