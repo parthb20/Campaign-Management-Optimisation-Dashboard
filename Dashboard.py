@@ -1604,10 +1604,14 @@ def download_data(n, obj, adv, ctype, camp):
     if n is None:
         raise PreventUpdate
     d = work.copy()
-    if obj: d = d[d['Campaign_Objective']==obj]
-    if adv: d = d[d['Advertiser']==adv]
-    if ctype: d = d[d['Campaign_Type']==ctype]
-    if camp: d = d[d['Campaign']==camp]
+    if obj:
+        d = d[d['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
+    if adv:
+        d = d[d['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
+    if ctype:
+        d = d[d['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
+    if camp:
+        d = d[d['Campaign'].astype(str).str.strip().str.lower() == str(camp).strip().lower()]    
     return dcc.send_data_frame(d.to_csv, "filtered_data.csv", index=False)
 
 @app.callback(
@@ -1626,11 +1630,14 @@ def download_keyword_category(n, obj, adv, ctype, camp):
     if n is None:
         raise PreventUpdate
     d = work.copy()
-    if obj: d = d[d['Campaign_Objective']==obj]
-    if adv: d = d[d['Advertiser']==adv]
-    if ctype: d = d[d['Campaign_Type']==ctype]
-    if camp: d = d[d['Campaign']==camp]
-    
+    if obj:
+        d = d[d['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
+    if adv:
+        d = d[d['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
+    if ctype:
+        d = d[d['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
+    if camp:
+        d = d[d['Campaign'].astype(str).str.strip().str.lower() == str(camp).strip().lower()]    
     if 'Keyword_Category' in d.columns and d['Keyword_Category'].notna().any():
         kw_cat = d.groupby('Keyword_Category').apply(lambda g: pd.Series({
             'Clicks': g['Clicks'].sum(),
@@ -1666,10 +1673,14 @@ def update_domain_dashboard(obj, adv, ctype, camp, active_tab):
     if active_tab != "domain-tab":  # ✅ Only run when domain tab is active
         raise PreventUpdate
     d = work_domain.copy()
-    if obj: d = d[d['Campaign_Objective']==obj]
-    if adv: d = d[d['Advertiser']==adv]
-    if ctype: d = d[d['Campaign_Type']==ctype]
-    if camp: d = d[d['Campaign']==camp]
+    if obj:
+        d = d[d['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
+    if adv:
+        d = d[d['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
+    if ctype:
+        d = d[d['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
+    if camp:
+        d = d[d['Campaign'].astype(str).str.strip().str.lower() == str(camp).strip().lower()]
     
     
 
@@ -1969,10 +1980,14 @@ def download_domain_data(n, obj, adv, ctype, camp):
     if n is None:
         raise PreventUpdate
     d = work_domain.copy()
-    if obj: d = d[d['Campaign_Objective']==obj]
-    if adv: d = d[d['Advertiser']==adv]
-    if ctype: d = d[d['Campaign_Type']==ctype]
-    if camp: d = d[d['Campaign']==camp]
+    if obj:
+        d = d[d['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
+    if adv:
+        d = d[d['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
+    if ctype:
+        d = d[d['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
+    if camp:
+        d = d[d['Campaign'].astype(str).str.strip().str.lower() == str(camp).strip().lower()]    
     return dcc.send_data_frame(d.to_csv, "filtered_domain_data.csv", index=False)
 # Run
 
