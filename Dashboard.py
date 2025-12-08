@@ -610,37 +610,41 @@ def init_objective(_):
     return [{'label': o, 'value': o} for o in opts], None
 @app.callback(
     Output('advertiser-dropdown','options'),
-    Input('objective-dropdown','value'),
+    Output('advertiser-dropdown','value'),
+    Input('objective-dropdown','value')
+,
 )
 def load_advertisers(obj):
     data = work if not obj else work[work['Campaign_Objective'] == obj]
     opts = sorted(data['Advertiser'].dropna().astype(str).unique())
-    return [{'label': a, 'value': a} for a in opts]
+    return [{'label': a, 'value': a} for a in opts],None
 @app.callback(
     Output('campaign-type-dropdown','options'),
+    Output('campaign-type-dropdown','value'),
     Input('objective-dropdown','value'),
     Input('advertiser-dropdown','value')
 )
 def load_campaign_types(obj, adv):
     data = work.copy()
-    if obj: data = data[data['Campaign_Objective']==obj]      # ✅ ADD THIS
+    if obj: data = data[data['Campaign_Objective']==obj]
     if adv: data = data[data['Advertiser']==adv]
     opts = sorted(data['Campaign_Type'].dropna().astype(str).unique())
-    return [{'label': c, 'value': c} for c in opts]
+    return [{'label': c, 'value': c} for c in opts], None
 
 @app.callback(
     Output('campaign-dropdown','options'),
-    Input('objective-dropdown','value'),      # ✅ ADD THIS
+    Output('campaign-dropdown','value'),
+    Input('objective-dropdown','value'),
     Input('advertiser-dropdown','value'), 
     Input('campaign-type-dropdown','value')
 )
 def load_campaigns(obj, adv, ctype):
     data=work.copy()
-    if obj: data = data[data['Campaign_Objective']==obj]      # ✅ ADD THIS
+    if obj: data = data[data['Campaign_Objective']==obj]
     if adv: data = data[data['Advertiser']==adv]
     if ctype: data = data[data['Campaign_Type']==ctype]
     opts = sorted(data['Campaign'].dropna().astype(str).unique())
-    return [{'label': c, 'value': c} for c in opts]
+    return [{'label': c, 'value': c} for c in opts], None
 # MAIN KEYWORD DASHBOARD - WITH prevent_initial_call=True ADDED
 @app.callback(
     Output('stats','children'),
