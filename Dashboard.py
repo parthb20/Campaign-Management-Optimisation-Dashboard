@@ -35,6 +35,7 @@ def load_keyword_data():
             print(f"✅ Loaded and LIMITED to {len(df)} keyword rows for Render")
         else:
             print(f"Loaded {len(df)} keyword rows")
+        return df
     except Exception as e:
         print(f"Error loading keyword data: {e}")
         return pd.DataFrame()
@@ -673,6 +674,22 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
+    if not any([obj, adv, ctype, camp]):
+        empty_fig = go.Figure()
+        empty_fig.add_annotation(
+            text="Please select at least one filter above to view data",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=16, color='white')
+        )
+        empty_fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(30,30,40,0.3)',
+            height=450, xaxis=dict(visible=False), yaxis=dict(visible=False)
+        )
+        empty_stats = dbc.Alert("Select filters to view data", color="info")
+        return (empty_stats, empty_fig, empty_fig, empty_fig, empty_fig,
+                empty_fig, empty_fig, empty_fig, empty_fig, empty_fig,
+                empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No data"))
     d = work.copy()
     if obj:
         d = d[d['Campaign_Objective'] == obj]
