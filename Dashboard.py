@@ -30,8 +30,11 @@ def load_keyword_data():
     """Cache loaded data to prevent reloading"""
     try:
         df = pd.read_csv(KEYWORD_DATA_FILE, low_memory=False)
-        print(f"Loaded {len(df)} keyword rows")
-        return df
+        if LIMIT_ROWS:
+            df = df.head(LIMIT_ROWS)
+            print(f"✅ Loaded and LIMITED to {len(df)} keyword rows for Render")
+        else:
+            print(f"Loaded {len(df)} keyword rows")
     except Exception as e:
         print(f"Error loading keyword data: {e}")
         return pd.DataFrame()
@@ -163,7 +166,9 @@ if df.empty or COL_KEYWORD is None:
 work = df.copy()
 if LIMIT_ROWS:
     work = work.head(LIMIT_ROWS)
-    print(f"Limited to {len(work)} rows for production")
+    print(f"✅ LIMITED to {len(work)} rows for Render production")
+else:
+    print(f"Processing all {len(work)} rows")
 rename_map = {}
 if COL_CAMPAIGN_OBJ: rename_map[COL_CAMPAIGN_OBJ] = 'Campaign_Objective'
 if COL_ADVERTISER: rename_map[COL_ADVERTISER] = 'Advertiser'
@@ -358,6 +363,11 @@ app.layout = dbc.Container([
         dbc.Tab(label="Keyword Analysis", tab_id="keyword-tab"),
         dbc.Tab(label="Domain Analysis", tab_id="domain-tab"),
     ], id="analysis-tabs", active_tab="keyword-tab", className="mb-3"),
+    dbc.Alert(
+        "⏳ First load may take 30-60 seconds. Please select filters above to view data.",
+        color="info",
+        className="mb-3"
+    ),
     html.Div(id="tab-content")
 ], fluid=True)
 @app.callback(
@@ -655,12 +665,14 @@ def load_campaigns(obj, adv, ctype):
     Input('campaign-type-dropdown','value'),
     Input('campaign-dropdown','value'),
     Input('analysis-tabs', 'active_tab'),
-    prevent_initial_call=False 
+    prevent_initial_call=True 
 )
 def update_dashboard(obj, adv, ctype, camp, active_tab):
     if active_tab != "keyword-tab":
         raise PreventUpdate
-    
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
     d = work.copy()
     if obj:
         d = d[d['Campaign_Objective'] == obj]
