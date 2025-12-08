@@ -1,6 +1,7 @@
 # dashboard_enhanced.py
 # Requirements:
 # pip install dash dash-bootstrap-components pandas numpy plotly
+import os
 import time
 print(f"=== DASHBOARD LOADED AT {time.strftime('%H:%M:%S')} ===")
 import pandas as pd
@@ -261,7 +262,9 @@ def weighted_roas(group):
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
 app.title = "Campaign Analytics Dashboard"
 app.config.suppress_callback_exceptions = True
+server = app.server
 app.index_string = '''
+
 <!DOCTYPE html>
 <html>
     <head>
@@ -1962,6 +1965,6 @@ def download_domain_data(n, obj, adv, ctype, camp):
     if camp: d = d[d['Campaign']==camp]
     return dcc.send_data_frame(d.to_csv, "filtered_domain_data.csv", index=False)
 # Run
+
 if __name__ == '__main__':
-    print(f"Starting dashboard on http://127.0.0.1:{PORT}")
-    app.run(debug=True, port=PORT)
+    app.run_server(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 8050)))
