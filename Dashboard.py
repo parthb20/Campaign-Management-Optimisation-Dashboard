@@ -608,20 +608,29 @@ def load_advertisers(obj):
     return [{'label': a, 'value': a} for a in opts]
 @app.callback(
     Output('campaign-type-dropdown','options'),
+    Input('objective-dropdown','value'),
     Input('advertiser-dropdown','value'),
     prevent_initial_call=True
 )
-def load_campaign_types(adv):
-    data = work if not adv else work[work['Advertiser']==adv]
+def load_campaign_types(obj, adv):
+    data = work.copy()
+    if obj: data = data[data['Campaign_Objective']==obj]      # ✅ ADD THIS
+    if adv: data = data[data['Advertiser']==adv]
     opts = sorted(data['Campaign_Type'].dropna().astype(str).unique())
     return [{'label': c, 'value': c} for c in opts]
+
 @app.callback(
     Output('campaign-dropdown','options'),
+    Input('objective-dropdown','value'),      # ✅ ADD THIS
+    Input('advertiser-dropdown','value'), 
     Input('campaign-type-dropdown','value'),
     prevent_initial_call=True
 )
-def load_campaigns(ctype):
-    data = work if not ctype else work[work['Campaign_Type']==ctype]
+def load_campaigns(obj, adv, ctype):
+    data=work.copy()
+    if obj: data = data[data['Campaign_Objective']==obj]      # ✅ ADD THIS
+    if adv: data = data[data['Advertiser']==adv]
+    if ctype: data = data[data['Campaign_Type']==ctype]
     opts = sorted(data['Campaign'].dropna().astype(str).unique())
     return [{'label': c, 'value': c} for c in opts]
 # MAIN KEYWORD DASHBOARD - WITH prevent_initial_call=True ADDED
@@ -646,7 +655,7 @@ def load_campaigns(ctype):
     Input('campaign-type-dropdown','value'),
     Input('campaign-dropdown','value'),
     Input('analysis-tabs', 'active_tab'),
-    prevent_initial_call=True
+    #prevent_initial_call=True
 )
 def update_dashboard(obj, adv, ctype, camp, active_tab):
     if active_tab != "keyword-tab":
