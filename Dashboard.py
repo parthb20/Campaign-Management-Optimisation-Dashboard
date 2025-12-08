@@ -660,7 +660,7 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
     if ctype:
         d = d[d['Campaign_Type'] == ctype]
     if camp:
-        d = d[d['Campaign'] == obj]            
+        d = d[d['Campaign'] == camp]            
     
     if d.shape[0] == 0:
         empty_fig = go.Figure()
