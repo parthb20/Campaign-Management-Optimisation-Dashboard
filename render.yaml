@@ -6,7 +6,7 @@ services:
     startCommand: gunicorn Dashboard:server --config gunicorn_config.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.10.13
       - key: WEB_CONCURRENCY
         value: 1
       - key: RENDER
