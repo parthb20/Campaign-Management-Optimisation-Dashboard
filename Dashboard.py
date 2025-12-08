@@ -620,8 +620,11 @@ def load_campaign_types(adv):
     Input('campaign-type-dropdown','value'),
     prevent_initial_call=True
 )
-def load_campaigns(ctype):
-    data = work if not ctype else work[work['Campaign_Type']==ctype]
+def load_campaigns(obj, adv, ctype):
+    data = work.copy()
+    if obj: data = data[data['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
+    if adv: data = data[data['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
+    if ctype: data = data[data['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
     opts = sorted(data['Campaign'].dropna().astype(str).unique())
     return [{'label': c, 'value': c} for c in opts]
 # MAIN KEYWORD DASHBOARD - WITH prevent_initial_call=True ADDED
@@ -653,15 +656,19 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
         raise PreventUpdate
     
     d = work.copy()
-    if obj:
-        d = d[d['Campaign_Objective'] == obj]
-    if adv:
-        d = d[d['Advertiser'] == adv]
-    if ctype:
-        d = d[d['Campaign_Type'] == ctype]
-    if camp:
-        d = d[d['Campaign'] == camp]            
-    
+    #if obj:
+    #    d = d[d['Campaign_Objective'] == obj]
+    #if adv:
+    #    d = d[d['Advertiser'] == adv]
+    #if ctype:
+    #    d = d[d['Campaign_Type'] == ctype]
+    #if camp:
+    #    d = d[d['Campaign'] == camp]            
+    d = work.copy()
+    if obj: d = d[d['Campaign_Objective'].astype(str).str.strip().str.lower() == str(obj).strip().lower()]
+    if adv: d = d[d['Advertiser'].astype(str).str.strip().str.lower() == str(adv).strip().lower()]
+    if ctype: d = d[d['Campaign_Type'].astype(str).str.strip().str.lower() == str(ctype).strip().lower()]
+    if camp: d = d[d['Campaign'].astype(str).str.strip().str.lower() == str(camp).strip().lower()]
     if d.shape[0] == 0:
         empty_fig = go.Figure()
         empty_fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',font=dict(color='white'), xaxis=dict(color='white'),yaxis=dict(color='white'))
