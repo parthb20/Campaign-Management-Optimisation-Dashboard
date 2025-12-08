@@ -655,7 +655,7 @@ def load_campaigns(obj, adv, ctype):
     Input('campaign-type-dropdown','value'),
     Input('campaign-dropdown','value'),
     Input('analysis-tabs', 'active_tab'),
-    #prevent_initial_call=True
+    prevent_initial_call=False 
 )
 def update_dashboard(obj, adv, ctype, camp, active_tab):
     if active_tab != "keyword-tab":
