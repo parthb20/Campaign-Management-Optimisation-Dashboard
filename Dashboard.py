@@ -689,11 +689,6 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
     print(f"Sample rows with position:")
     print(d[d['Position_of_Number'].notna()][['Keyword', 'Position_of_Number', 'Clicks']].head(20))
     print("===================\n")
-    d = work.copy()
-    if obj: d = d[d['Campaign_Objective']==obj]
-    if adv: d = d[d['Advertiser']==adv]
-    if ctype: d = d[d['Campaign_Type']==ctype]
-    if camp: d = d[d['Campaign']==camp]
     if d.shape[0] == 0:
         empty_fig = go.Figure()
         empty_fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',font=dict(color='white'), xaxis=dict(color='white'),yaxis=dict(color='white'))
