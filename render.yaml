@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: analytics-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn dashboard_enhanced:server --config gunicorn_config.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: WEB_CONCURRENCY
+        value: 1
