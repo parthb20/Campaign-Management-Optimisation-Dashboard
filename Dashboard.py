@@ -997,7 +997,7 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
             mode='markers+text',
             text=[r['emotion']],
             textposition='middle center',
-            textfont=dict(size=12, color='white', weight='bold'),
+            textfont=dict(size=12, color='white', family='Arial'),  # optional: family
             marker=dict(size=size, color=cmap[r['emotion']], opacity=0.8,
                        line=dict(width=3, color='white')),
             hovertemplate=f"<b>{r['emotion']}</b><br>" +
@@ -1025,7 +1025,7 @@ def update_dashboard(obj, adv, ctype, camp, active_tab):
             mode='markers+text',
             text=[r['emotion']],
             textposition='middle center',
-            textfont=dict(size=12, color='white', weight='bold'),
+            textfont=dict(size=12, color='white', family='Arial'),  # optional: family
             marker=dict(size=size, color=cmap[r['emotion']], opacity=0.8,
                        line=dict(width=3, color='white')),
             hovertemplate=f"<b>{r['emotion']}</b><br>" +
@@ -1889,7 +1889,7 @@ def update_domain_dashboard(obj, adv, ctype, camp, active_tab):
                 mode='markers+text',
                 text=[r['Domain_Category']],
                 textposition='middle center',
-                textfont=dict(size=11, color='white', weight='bold'),
+                textfont=dict(size=11, color='white', family='Arial'),  # optional: family
                 marker=dict(size=size, color=palette[i % len(palette)], opacity=0.8, line=dict(width=3, color='white')),
                 hovertemplate=f"<b>{r['Domain_Category']}</b><br>CTR: {r['CTR']:.2f}%<br>CVR: {r['CVR']:.2f}%<extra></extra>",
                 showlegend=False
@@ -1913,7 +1913,7 @@ def update_domain_dashboard(obj, adv, ctype, camp, active_tab):
                 mode='markers+text',
                 text=[r['Domain_Category']],
                 textposition='middle center',
-                textfont=dict(size=11, color='white', weight='bold'),
+                textfont=dict(size=11, color='white', family='Arial'),  # optional: family
                 marker=dict(size=size, color=palette[i % len(palette)], opacity=0.8, line=dict(width=3, color='white')),
                 hovertemplate=f"<b>{r['Domain_Category']}</b><br>ROAS: {r['ROAS']:.2f}x<br>CPA: ${r['CPA']:.2f}<extra></extra>",
                 showlegend=False
