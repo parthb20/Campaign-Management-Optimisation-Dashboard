@@ -43,10 +43,18 @@ def load_keyword_data():
             df = pd.read_csv(io.StringIO(response.text), low_memory=False)
             print(f"✅ Loaded {len(df)} rows from Google Drive")
         else:
-            # Running locally - load from file
-            print("📂 Loading keyword data from local file...")
-            df = pd.read_csv(KEYWORD_DATA_FILE, low_memory=False)
-            print(f"✅ Loaded {len(df)} rows from local file")
+            # Running locally - try local file first, fallback to Drive
+            if os.path.exists(KEYWORD_DATA_FILE):
+                print("📂 Loading keyword data from local file...")
+                df = pd.read_csv(KEYWORD_DATA_FILE, low_memory=False)
+                print(f"✅ Loaded {len(df)} rows from local file")
+            else:
+                print(f"⚠️ Local file not found, loading from Google Drive...")
+                url = f"https://drive.google.com/uc?export=download&id={KEYWORD_FILE_ID}"
+                response = requests.get(url, timeout=120)
+                response.raise_for_status()
+                df = pd.read_csv(io.StringIO(response.text), low_memory=False)
+                print(f"✅ Loaded {len(df)} rows from Google Drive")
         
         # Apply row limit if set
         if LIMIT_ROWS:
@@ -71,10 +79,18 @@ def load_domain_data():
             df = pd.read_csv(io.StringIO(response.text), low_memory=False)
             print(f"✅ Loaded {len(df)} rows from Google Drive")
         else:
-            # Running locally - load from file
-            print("📂 Loading domain data from local file...")
-            df = pd.read_csv(DOMAIN_DATA_FILE, low_memory=False)
-            print(f"✅ Loaded {len(df)} rows from local file")
+            # Running locally - try local file first, fallback to Drive
+            if os.path.exists(DOMAIN_DATA_FILE):
+                print("📂 Loading domain data from local file...")
+                df = pd.read_csv(DOMAIN_DATA_FILE, low_memory=False)
+                print(f"✅ Loaded {len(df)} rows from local file")
+            else:
+                print(f"⚠️ Local file not found, loading from Google Drive...")
+                url = f"https://drive.google.com/uc?export=download&id={DOMAIN_FILE_ID}"
+                response = requests.get(url, timeout=120)
+                response.raise_for_status()
+                df = pd.read_csv(io.StringIO(response.text), low_memory=False)
+                print(f"✅ Loaded {len(df)} rows from Google Drive")
         
         # Apply row limit if set
         if LIMIT_ROWS:
@@ -85,7 +101,6 @@ def load_domain_data():
     except Exception as e:
         print(f"❌ Error loading domain data: {e}")
         return pd.DataFrame()
-
 COLORS = {
     'primary': '#00D9FF',
     'secondary': '#FF6B9D',
