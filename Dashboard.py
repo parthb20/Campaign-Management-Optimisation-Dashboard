@@ -13,14 +13,19 @@ import dash
 from dash import dcc, html, Input, Output, State,dash_table
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
+import requests  # ✅ ADD THIS
+import io
 if os.environ.get('RENDER'):
     print("Running on Render - limiting data size")
-    LIMIT_ROWS = 10000  # Process only first 10k rows
+    LIMIT_ROWS = 5000  # Process only first 190k rows
 else:
     LIMIT_ROWS = None 
 # -----------------------------
 # CONFIG
 # -----------------------------
+KEYWORD_FILE_ID = "https://drive.google.com/file/d/1LztuQLch3kAWXhvkLneuhmoqBeqnpIw4/view?usp=sharing"  # ✅ REPLACE WITH YOUR FILE ID
+DOMAIN_FILE_ID = "https://drive.google.com/file/d/151EcUl934EWJrdr_DWqehPT7W1M7UKi9/view?usp=sharing"
+
 KEYWORD_DATA_FILE = "Max Learning_5Dec202517_54_48_27Nov2025_03Dec2025.csv"
 DOMAIN_DATA_FILE = "Domain Analysis_27Nov2025_03Dec2025.csv"
 PORT = 8050
