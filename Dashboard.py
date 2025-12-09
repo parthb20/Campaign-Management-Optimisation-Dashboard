@@ -15,7 +15,7 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 if os.environ.get('RENDER'):
     print("Running on Render - limiting data size")
-    LIMIT_ROWS = 5000  # Process only first 190k rows
+    LIMIT_ROWS = 10000  # Process only first 10k rows
 else:
     LIMIT_ROWS = None 
 # -----------------------------
