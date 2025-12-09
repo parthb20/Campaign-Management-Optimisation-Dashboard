@@ -32,28 +32,58 @@ PORT = 8050
 
 @lru_cache(maxsize=1)
 def load_keyword_data():
-    """Cache loaded data to prevent reloading"""
+    """Load from Google Drive on Render, local file otherwise"""
     try:
-        df = pd.read_csv(KEYWORD_DATA_FILE, low_memory=False)
+        if os.environ.get('RENDER'):
+            # Running on Render - load from Google Drive
+            print("📥 Loading keyword data from Google Drive...")
+            url = f"https://drive.google.com/uc?export=download&id={KEYWORD_FILE_ID}"
+            response = requests.get(url, timeout=120)
+            response.raise_for_status()
+            df = pd.read_csv(io.StringIO(response.text), low_memory=False)
+            print(f"✅ Loaded {len(df)} rows from Google Drive")
+        else:
+            # Running locally - load from file
+            print("📂 Loading keyword data from local file...")
+            df = pd.read_csv(KEYWORD_DATA_FILE, low_memory=False)
+            print(f"✅ Loaded {len(df)} rows from local file")
+        
+        # Apply row limit if set
         if LIMIT_ROWS:
             df = df.head(LIMIT_ROWS)
-            print(f"✅ Loaded and LIMITED to {len(df)} keyword rows for Render")
-        else:
-            print(f"Loaded {len(df)} keyword rows")
+            print(f"✅ Limited to {len(df)} rows")
+        
         return df
     except Exception as e:
-        print(f"Error loading keyword data: {e}")
+        print(f"❌ Error loading keyword data: {e}")
         return pd.DataFrame()
 
 @lru_cache(maxsize=1)
 def load_domain_data():
-    """Cache loaded domain data"""
+    """Load from Google Drive on Render, local file otherwise"""
     try:
-        df = pd.read_csv(DOMAIN_DATA_FILE, low_memory=False)
-        print(f"Loaded {len(df)} domain rows")
+        if os.environ.get('RENDER'):
+            # Running on Render - load from Google Drive
+            print("📥 Loading domain data from Google Drive...")
+            url = f"https://drive.google.com/uc?export=download&id={DOMAIN_FILE_ID}"
+            response = requests.get(url, timeout=120)
+            response.raise_for_status()
+            df = pd.read_csv(io.StringIO(response.text), low_memory=False)
+            print(f"✅ Loaded {len(df)} rows from Google Drive")
+        else:
+            # Running locally - load from file
+            print("📂 Loading domain data from local file...")
+            df = pd.read_csv(DOMAIN_DATA_FILE, low_memory=False)
+            print(f"✅ Loaded {len(df)} rows from local file")
+        
+        # Apply row limit if set
+        if LIMIT_ROWS:
+            df = df.head(LIMIT_ROWS)
+            print(f"✅ Limited to {len(df)} rows")
+            
         return df
     except Exception as e:
-        print(f"Error loading domain data: {e}")
+        print(f"❌ Error loading domain data: {e}")
         return pd.DataFrame()
 
 COLORS = {
