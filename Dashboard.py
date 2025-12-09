@@ -23,8 +23,8 @@ else:
 # -----------------------------
 # CONFIG
 # -----------------------------
-KEYWORD_FILE_ID = "https://drive.google.com/file/d/1LztuQLch3kAWXhvkLneuhmoqBeqnpIw4/view?usp=sharing"  # ✅ REPLACE WITH YOUR FILE ID
-DOMAIN_FILE_ID = "https://drive.google.com/file/d/151EcUl934EWJrdr_DWqehPT7W1M7UKi9/view?usp=sharing"
+KEYWORD_FILE_ID = "1LztuQLch3kAWXhvkLneuhmoqBeqnpIw4"  # ✅ REPLACE WITH YOUR FILE ID
+DOMAIN_FILE_ID = "151EcUl934EWJrdr_DWqehPT7W1M7UKi9"
 
 KEYWORD_DATA_FILE = "Max Learning_5Dec202517_54_48_27Nov2025_03Dec2025.csv"
 DOMAIN_DATA_FILE = "Domain Analysis_27Nov2025_03Dec2025.csv"
