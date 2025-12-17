@@ -24,8 +24,8 @@ else:
 # CONFIG
 # -----------------------------
 
-KEYWORD_FILE_ID = "1LztuQLch3kAWXhvkLneuhmoqBeqnpIw4"  # ✅ REPLACE WITH YOUR FILE ID
-DOMAIN_FILE_ID = "1D3eNttY7R408pMHePZdi6YA8aJ2AwXCv"
+KEYWORD_FILE_ID = "-"  # ✅ REPLACE WITH YOUR FILE ID
+DOMAIN_FILE_ID = "-"
 
 KEYWORD_DATA_FILE = "Max Learning_5Dec202517_54_48_27Nov2025_03Dec2025.csv"
 DOMAIN_DATA_FILE = "Domain Analysis_27Nov2025_03Dec2025.csv"
@@ -2086,3 +2086,4 @@ def download_domain_data(n, obj, adv, ctype, camp):
 
 if __name__ == '__main__':
     app.run_server(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 8050)))
+
